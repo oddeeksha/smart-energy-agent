@@ -18,6 +18,12 @@ FEATURES_CSV_PATH = "data/features/features.csv"
 MODEL_PATH = "data/artifacts/model.pkl"
 THRESHOLDS_PATH = "data/artifacts/peak_thresholds.csv"
 RATE_CONFIG_PATH = "data/artifacts/impact_rate_config.json"
+FEATURE_IMPORTANCE_PATH = "data/artifacts/feature_importance.csv"
+
+# --- Forecast Horizon & Targets ---
+FORECAST_HORIZON = "1 hour ahead / t+1"
+FORECAST_HORIZON_HOURS = 1
+TARGET_DEMAND_COL = "target_demand"
 
 PJME_RAW_PATH = os.path.join(FEATURES_DATA_DIR, "PJME_hourly_features_weather.csv")
 FINAL_DATASET_PATH = os.path.join(FEATURES_DATA_DIR, "PJME_hourly_features_weather_final.csv")
