@@ -30,8 +30,8 @@ def detect_anomaly(residual: float, rolling_mean: float, rolling_std: float,
     """Returns AnomalyResult. direction is 'high' if residual > 0, 'low' if
     residual < 0, only meaningful when is_anomaly is True.
 
-    TODO(P4): decide how to handle rolling_std == 0 or NaN (cold-start period)
-    — currently returns not-anomaly rather than raising, confirm this is right.
+    For cold-start periods (NaN rolling statistics) or zero rolling
+standard deviation, returns not-anomaly rather than raising.
     """
     if pd.isna(rolling_mean) or pd.isna(rolling_std) or rolling_std == 0:
         return AnomalyResult(is_anomaly=False, direction=None, zscore=0.0,
