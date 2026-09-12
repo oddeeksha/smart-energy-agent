@@ -14,6 +14,7 @@ from src.config import (
     PEAK_SEVERITY_LOW_MAX,
     PEAK_SEVERITY_MEDIUM_MAX,
     THRESHOLDS_PATH,
+    FEATURES_CSV_PATH,
 )
 
 
@@ -81,6 +82,7 @@ def save_thresholds(thresholds: dict, path: str = THRESHOLDS_PATH) -> None:
 
 
 if __name__ == "__main__":
-    # TODO(P3): load features.csv, filter to split=='train', compute_thresholds,
-    # save to THRESHOLDS_PATH.
-    pass
+    df = pd.read_csv(FEATURES_CSV_PATH)
+    train_df = df[df["split"] == "train"]
+    thresholds = compute_thresholds(train_df)
+    save_thresholds(thresholds)
