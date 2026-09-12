@@ -1,0 +1,9 @@
+feature,importance
+lag_1,0.7648062
+hour,0.08181872
+temperature,0.07764337
+lag_24,0.03409103
+day_of_week,0.020895824
+lag_168,0.009486432
+is_holiday,0.007817306
+month,0.003441081
