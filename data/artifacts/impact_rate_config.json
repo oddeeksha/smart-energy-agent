@@ -1,5 +1,5 @@
 {
-  "peak_rate": 0.0,
-  "offpeak_rate": 0.0,
-  "source": "TODO(P4): replace with a real cited PJM Market Monitor or EIA rate spread"
+  "peak_rate": 47.10,
+  "offpeak_rate": 38.50,
+  "source": "Monitoring Analytics, 2024 State of the Market Report for PJM, Table 3-39, January 2024 real-time monthly on-peak and off-peak load-weighted average LMP, $47.10/MWh on-peak and $38.50/MWh off-peak."
 }
