@@ -99,6 +99,50 @@ def run_agent_over_range(df: pd.DataFrame, thresholds: dict, k: float,
 
 
 if __name__ == "__main__":
-    # TODO(P5): wire up to load features.csv + predictions + rolling stats,
-    # load thresholds and rate_config, run over the full test range, save log.
-    pass
+    import os
+    from src.config import FEATURES_CSV_PATH, MODEL_PATH, K_THRESHOLD, ROLLING_WINDOW_HOURS, REPORTS_DIR
+    from src.forecasting import load_model, predict
+    from src.peak_detection import compute_thresholds
+    from src.anomaly_detection import compute_residual, rolling_residual_stats
+    from src.recommendations import load_rate_config
+
+    print("==================================================")
+    print("RUNNING P5 AGENT ORCHESTRATION PIPELINE")
+    print("==================================================")
+
+    # 1. Load feature dataset & set actual demand alias
+    print(f"Loading feature dataset: {FEATURES_CSV_PATH}")
+    df = pd.read_csv(FEATURES_CSV_PATH)
+    df["actual"] = df["demand"]
+
+    # 2. Load model & predict across full timeline
+    print(f"Loading forecasting model: {MODEL_PATH}")
+    model = load_model(MODEL_PATH)
+    df = predict(model, df)
+
+    # 3. Compute rolling residual statistics (strictly trailing)
+    print(f"Computing rolling residual stats (window={ROLLING_WINDOW_HOURS}h)...")
+    residuals = compute_residual(df["actual"], df["predicted"])
+    df["rolling_mean"], df["rolling_std"] = rolling_residual_stats(residuals, window=ROLLING_WINDOW_HOURS)
+
+    # 4. Compute peak thresholds from training split
+    train_df = df[df["split"] == "train"]
+    thresholds = compute_thresholds(train_df)
+
+    # 5. Load rate config for financial impact estimation
+    rate_config = load_rate_config()
+
+    # 6. Run agent over held-out test split
+    test_df = df[df["split"] == "test"].reset_index(drop=True)
+    print(f"Running agent over test set ({len(test_df):,} timesteps)...")
+    log_df = run_agent_over_range(test_df, thresholds, k=K_THRESHOLD, rate_config=rate_config)
+
+    # 7. Save agent log artifact
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    output_log_path = os.path.join(REPORTS_DIR, "agent_execution_log.csv")
+    log_df.to_csv(output_log_path, index=False)
+
+    print(f"\n[OK] Agent execution complete. Log saved to: {output_log_path}")
+    print(f"Trigger Summary across test set:")
+    print(log_df["trigger_type"].value_counts(dropna=False))
+
