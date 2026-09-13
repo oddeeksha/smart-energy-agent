@@ -41,7 +41,7 @@ PEAK_SEVERITY_LOW_MAX = 0.038654
 PEAK_SEVERITY_MEDIUM_MAX = 0.106595
 
 # --- Peak detection ---
-PEAK_PERCENTILE = 0.85
+PEAK_PERCENTILE = 0.95
 
 # --- Key Column Identifiers ---
 TIMESTAMP_COL = "timestamp"
