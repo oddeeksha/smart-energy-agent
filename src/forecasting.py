@@ -44,6 +44,7 @@ Output:
 """
 
 import os
+import json
 import joblib
 import numpy as np
 import pandas as pd
@@ -54,6 +55,7 @@ from src.config import (
     MODEL_PATH,
     FEATURES_CSV_PATH,
     FEATURE_IMPORTANCE_PATH,
+    METRICS_PATH,
     FORECAST_HORIZON,
     TARGET_DEMAND_COL,
 )
@@ -563,6 +565,37 @@ def save_model(
     joblib.dump(model, path)
 
 
+def save_metrics(
+    metrics: dict,
+    test_df: pd.DataFrame,
+    path: str = METRICS_PATH
+) -> dict:
+    """
+    Saves forecasting evaluation metrics and test metadata to a JSON artifact.
+    """
+    test_start = str(test_df["timestamp"].min())
+    test_end = str(test_df["timestamp"].max())
+    test_rows = int(len(test_df))
+
+    payload = {
+        "mape": float(metrics["mape"]),
+        "rmse": float(metrics["rmse"]),
+        "mae": float(metrics["mae"]),
+        "test_rows": test_rows,
+        "test_start": test_start,
+        "test_end": test_end,
+    }
+
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=4)
+
+    return payload
+
+
 def load_model(
     path: str = MODEL_PATH
 ) -> XGBRegressor:
@@ -679,11 +712,14 @@ if __name__ == "__main__":
     print("==================================================")
 
     # ---------------------------------------------------------
-    # 9. Save Model Artifact
+    # 9. Save Metrics Artifact & Model Artifact
     # ---------------------------------------------------------
 
+    save_metrics(metrics, test_df, METRICS_PATH)
+    print(f"Saved metrics artifact: {METRICS_PATH}")
+
     save_model(model, MODEL_PATH)
-    print(f"\nModel artifact saved to: {MODEL_PATH}")
+    print(f"Model artifact saved to: {MODEL_PATH}")
 
     # ---------------------------------------------------------
     # 10. Export Feature Importance Artifact

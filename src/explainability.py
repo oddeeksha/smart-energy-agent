@@ -90,11 +90,7 @@ def explain_anomaly(
 
 
 def feature_importance_chart_data(model) -> pd.DataFrame:
-    """Returns {feature, importance} sorted descending, from model.feature_importances_.
-
-    TODO(P6): import MODEL_FEATURE_COLUMNS from config to label the importances
-    correctly — the order must match what was passed into model.fit().
-    """
+   
     from src.config import MODEL_FEATURE_COLUMNS
     importances = model.feature_importances_
     df = pd.DataFrame({

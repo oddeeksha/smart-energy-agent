@@ -72,7 +72,4 @@ def severity_label(score: float) -> str:
 
 
 if __name__ == "__main__":
-    # TODO(P4): wire up to load features.csv + predictions, compute residuals
-    # across the full range, run rolling_residual_stats, spot-check known
-    # extreme-weather dates against detect_anomaly output.
     pass

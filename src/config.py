@@ -19,6 +19,8 @@ MODEL_PATH = "data/artifacts/model.pkl"
 THRESHOLDS_PATH = "data/artifacts/peak_thresholds.csv"
 RATE_CONFIG_PATH = "data/artifacts/impact_rate_config.json"
 FEATURE_IMPORTANCE_PATH = "data/artifacts/feature_importance.csv"
+METRICS_PATH = "data/artifacts/metrics.json"
+
 
 # --- Forecast Horizon & Targets ---
 FORECAST_HORIZON = "1 hour ahead / t+1"
