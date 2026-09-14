@@ -137,87 +137,12 @@ if __name__ == "__main__":
     print(f"Running agent over test set ({len(test_df):,} timesteps)...")
     log_df = run_agent_over_range(test_df, thresholds, k=K_THRESHOLD, rate_config=rate_config)
 
-    # 7. Save agent log artifact & pipeline outputs artifact
+    # 7. Save agent log artifact
     os.makedirs(REPORTS_DIR, exist_ok=True)
     output_log_path = os.path.join(REPORTS_DIR, "agent_execution_log.csv")
     log_df.to_csv(output_log_path, index=False)
 
-    # 8. Extract complete P2/P3/P4/P5 metrics to create comprehensive pipeline_outputs.csv
-    detailed_records = []
-    source_note = rate_config.get("source", "")
-
-    for _, row in test_df.iterrows():
-        ts_str = str(row["timestamp"])
-        forecast_val = row["predicted"]
-        actual_val = row["actual"]
-        season_val = row["season"]
-        hour_val = row["hour"]
-        rmean = row["rolling_mean"]
-        rstd = row["rolling_std"]
-
-        # Re-evaluate P3 peak & P4 anomaly outputs to capture individual metrics
-        pr = detect_peak(forecast_val, season_val, hour_val, thresholds)
-        res = compute_residual(actual_val, forecast_val)
-        ar = detect_anomaly(res, rmean, rstd, K_THRESHOLD)
-
-        detailed_records.append({
-            "timestamp": ts_str,
-            "season": season_val,
-            "hour": hour_val,
-            "actual": actual_val,
-            "predicted": forecast_val,
-            "residual": res,
-            "rolling_mean": rmean,
-            "rolling_std": rstd,
-            "z_score": ar.zscore,
-            "is_anomaly": ar.is_anomaly,
-            "anomaly_direction": ar.direction,
-            "anomaly_severity": ar.severity,
-            "anomaly_severity_score": ar.severity_score,
-            "peak_threshold": pr.threshold,
-            "is_peak": pr.is_peak,
-            "peak_severity": pr.severity,
-            "peak_severity_score": pr.severity_score,
-            "impact_source_note": source_note,
-        })
-
-    detailed_df = pd.DataFrame(detailed_records)
-    log_cols = ["trigger_type", "severity", "reasoning", "recommendation", "estimated_impact"]
-    pipeline_outputs_df = pd.concat([detailed_df, log_df[log_cols]], axis=1)
-
-    ordered_cols = [
-        "timestamp",
-        "season",
-        "hour",
-        "actual",
-        "predicted",
-        "residual",
-        "rolling_mean",
-        "rolling_std",
-        "z_score",
-        "is_anomaly",
-        "anomaly_direction",
-        "anomaly_severity",
-        "anomaly_severity_score",
-        "peak_threshold",
-        "is_peak",
-        "peak_severity",
-        "peak_severity_score",
-        "trigger_type",
-        "severity",
-        "reasoning",
-        "recommendation",
-        "estimated_impact",
-        "impact_source_note",
-    ]
-    pipeline_outputs_df = pipeline_outputs_df[ordered_cols]
-
-    output_pipeline_path = os.path.join(REPORTS_DIR, "pipeline_outputs.csv")
-    pipeline_outputs_df.to_csv(output_pipeline_path, index=False)
-
-    print(f"\n[OK] Agent execution complete.")
-    print(f"Log saved to: {output_log_path}")
-    print(f"Comprehensive pipeline outputs saved to: {output_pipeline_path}")
+    print(f"\n[OK] Agent execution complete. Log saved to: {output_log_path}")
     print(f"Trigger Summary across test set:")
     print(log_df["trigger_type"].value_counts(dropna=False))
 
