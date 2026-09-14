@@ -7,89 +7,18 @@ Run with:
 streamlit run app/app.py
 """
 
-import json
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-from src.forecasting import load_model, predict
-from src.agent import run_agent_over_range
-from src.anomaly_detection import rolling_residual_stats
-from src.config import (
-    FEATURES_CSV_PATH,
-    MODEL_PATH,
-    THRESHOLDS_PATH,
-    RATE_CONFIG_PATH,
-    K_THRESHOLD,
-)
-
 
 @st.cache_data
 def load_pipeline_outputs() -> pd.DataFrame:
-    """Load real test data, generate forecasts, run the P5 agent,
-    and return the combined output for the Streamlit app.
-    """
+    """Load the generated P5 pipeline output for the Streamlit app."""
 
-    # 1. Load feature data
-    df = pd.read_csv(FEATURES_CSV_PATH)
+    result = pd.read_csv("reports/pipeline_outputs.csv")
 
-    # 2. Keep only test split
-    test_df = df[df["split"] == "test"].copy()
-    test_df["timestamp"] = pd.to_datetime(test_df["timestamp"])
-
-    # 3. Generate forecasts using trained model
-    model = load_model(MODEL_PATH)
-    test_df = predict(model, test_df)
-
-    # 4. Calculate residual and rolling statistics
-    test_df["residual"] = test_df["demand"] - test_df["predicted"]
-
-    test_df["rolling_mean"], test_df["rolling_std"] = rolling_residual_stats(
-        test_df["residual"]
-    )
-
-    # 5. Load peak thresholds
-    thresholds_df = pd.read_csv(THRESHOLDS_PATH)
-
-    thresholds = {
-        (row["season"], int(row["hour"])): row["threshold"]
-        for _, row in thresholds_df.dropna(subset=["hour"]).iterrows()
-    }
-
-    # 6. Load impact-rate configuration
-    with open(RATE_CONFIG_PATH, "r") as f:
-        rate_config = json.load(f)
-
-    # 7. Prepare input for P5 agent
-    agent_input = test_df[
-        [
-            "timestamp",
-            "demand",
-            "predicted",
-            "season",
-            "hour",
-            "rolling_mean",
-            "rolling_std",
-        ]
-    ].rename(columns={"demand": "actual"})
-
-    # 8. Run P5 agent
-    log_df = run_agent_over_range(
-        agent_input,
-        thresholds,
-        K_THRESHOLD,
-        rate_config,
-    )
-
-    log_df["timestamp"] = pd.to_datetime(log_df["timestamp"])
-
-    # 9. Combine actual, forecast and agent output
-    result = test_df[["timestamp", "demand", "predicted"]].rename(
-        columns={"demand": "actual"}
-    )
-
-    result = result.merge(log_df, on="timestamp", how="left")
+    result["timestamp"] = pd.to_datetime(result["timestamp"])
 
     return result
 
@@ -198,7 +127,7 @@ def main():
         "Grid-operator decision-support system — PJM regional demand"
     )
 
-    # Load real P3 → P4 → P5 pipeline output
+    # Load generated P5 pipeline output
     df = load_pipeline_outputs()
 
     col1, col2 = st.columns([2, 1])
