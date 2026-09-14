@@ -21,7 +21,13 @@ def render_whatif_simulator(current_forecast: float, current_threshold: float,
         "the forecasting model."
     )
 
-    reduction = st.slider("Hypothetical demand reduction (MW)", 0, 500, 0)
+    excess = current_forecast - current_threshold
+    if excess > 0:
+        st.info(f"⚡ **Active Peak Event**: Demand exceeds threshold by **{excess:,.0f} MW**.")
+    else:
+        st.caption(f"🟢 **Grid Normal**: Forecast is **{abs(excess):,.0f} MW** below peak threshold.")
+
+    reduction = st.slider("Hypothetical demand reduction (MW)", 0, 5000, 0, step=100)
     adjusted_demand = current_forecast - reduction
     new_is_peak = adjusted_demand > current_threshold
 
@@ -35,6 +41,7 @@ def render_whatif_simulator(current_forecast: float, current_threshold: float,
         st.metric("Peak status after reduction", "Still peaking" if new_is_peak else "Peak avoided")
     with col2:
         st.metric("Estimated impact after reduction", f"${new_impact:,.0f}")
+
 
 
 if __name__ == "__main__":

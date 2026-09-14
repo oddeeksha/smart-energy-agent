@@ -48,6 +48,7 @@ class LogEntry:
     reasoning: Optional[str]
     recommendation: Optional[str]
     estimated_impact: Optional[float]
+    peak_threshold: Optional[float] = None
 
 
 # Helper used by P5's combined-trigger logic (max severity comparison).

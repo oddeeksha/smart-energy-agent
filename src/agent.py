@@ -24,11 +24,13 @@ def run_agent_step(
     rolling_std: float,
     k: float,
     rate_config: dict,
+    temperature: float = None,
+    is_holiday=None,
 ) -> LogEntry:
     """The full perceive-evaluate-recommend-log cycle for one timestep."""
 
     # --- Perceive + Evaluate ---
-    peak_result = detect_peak(forecast, season, hour, thresholds)
+    peak_result = detect_peak(forecast, season, hour, thresholds, temperature=temperature, is_holiday=is_holiday)
     residual = compute_residual(actual, forecast)
     anomaly_result = detect_anomaly(residual, rolling_mean, rolling_std, k)
 
@@ -38,24 +40,25 @@ def run_agent_step(
         severity = (peak_result.severity if severity_rank(peak_result.severity) >= severity_rank(anomaly_result.severity)
                     else anomaly_result.severity)
         reasoning = f"{peak_result.reasoning} {anomaly_result.reasoning}"
-        recommendation = get_recommendation("combined", severity)
         impact = estimate_impact(forecast, peak_result.threshold,
                                   rate_config.get("peak_rate", 0.0), rate_config.get("offpeak_rate", 0.0))
+        recommendation = get_recommendation("combined", severity, forecast=forecast, threshold=peak_result.threshold, estimated_impact=impact, temperature=temperature, season=season, hour=hour)
 
     elif peak_result.is_peak:
         trigger_type = "peak"
         severity = peak_result.severity
         reasoning = peak_result.reasoning
-        recommendation = get_recommendation("peak", severity)
         impact = estimate_impact(forecast, peak_result.threshold,
                                   rate_config.get("peak_rate", 0.0), rate_config.get("offpeak_rate", 0.0))
+        recommendation = get_recommendation("peak", severity, forecast=forecast, threshold=peak_result.threshold, estimated_impact=impact, temperature=temperature, season=season, hour=hour)
 
     elif anomaly_result.is_anomaly:
         trigger_type = f"{anomaly_result.direction}_anomaly"
         severity = anomaly_result.severity
         reasoning = anomaly_result.reasoning
-        recommendation = get_recommendation(trigger_type, severity)
-        impact = 0.0  # TODO(P4/P5): decide if anomaly-only triggers get a nonzero impact estimate
+        impact = 0.0
+        recommendation = get_recommendation(trigger_type, severity, forecast=forecast, threshold=0.0, estimated_impact=0.0, temperature=temperature, season=season, hour=hour)
+
 
     else:
         trigger_type = None
@@ -71,6 +74,7 @@ def run_agent_step(
         reasoning=reasoning,
         recommendation=recommendation.action_text if recommendation else None,
         estimated_impact=impact,
+        peak_threshold=peak_result.threshold,
     )
 
 
@@ -81,6 +85,9 @@ def run_agent_over_range(df: pd.DataFrame, thresholds: dict, k: float,
     'rolling_std' columns computed). Returns a dataframe of LogEntry rows.
     """
     log_entries = []
+    has_temp = "temperature" in df.columns
+    has_hol = "is_holiday" in df.columns
+
     for _, row in df.iterrows():
         entry = run_agent_step(
             timestamp=row["timestamp"],
@@ -93,6 +100,8 @@ def run_agent_over_range(df: pd.DataFrame, thresholds: dict, k: float,
             rolling_std=row["rolling_std"],
             k=k,
             rate_config=rate_config,
+            temperature=row["temperature"] if has_temp else None,
+            is_holiday=row["is_holiday"] if has_hol else None,
         )
         log_entries.append(entry.__dict__)
     return pd.DataFrame(log_entries)
@@ -137,12 +146,20 @@ if __name__ == "__main__":
     print(f"Running agent over test set ({len(test_df):,} timesteps)...")
     log_df = run_agent_over_range(test_df, thresholds, k=K_THRESHOLD, rate_config=rate_config)
 
-    # 7. Save agent log artifact
+    # 7. Save agent log artifact and full pipeline outputs
     os.makedirs(REPORTS_DIR, exist_ok=True)
     output_log_path = os.path.join(REPORTS_DIR, "agent_execution_log.csv")
     log_df.to_csv(output_log_path, index=False)
 
+    pipeline_outputs_path = os.path.join(REPORTS_DIR, "pipeline_outputs.csv")
+    # Join log entry attributes back to test_df for pipeline_outputs.csv
+    for col in ["trigger_type", "severity", "reasoning", "recommendation", "estimated_impact", "peak_threshold"]:
+        test_df[col] = log_df[col]
+    test_df.to_csv(pipeline_outputs_path, index=False)
+
     print(f"\n[OK] Agent execution complete. Log saved to: {output_log_path}")
+    print(f"[OK] Pipeline outputs saved to: {pipeline_outputs_path}")
     print(f"Trigger Summary across test set:")
     print(log_df["trigger_type"].value_counts(dropna=False))
+
 

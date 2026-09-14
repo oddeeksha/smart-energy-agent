@@ -33,10 +33,19 @@ def compute_thresholds(train_df: pd.DataFrame) -> dict:
     return thresholds
 
 
-def detect_peak(forecast: float, season: str, hour: int, thresholds: dict) -> PeakResult:
+def detect_peak(
+    forecast: float,
+    season: str,
+    hour: int,
+    thresholds: dict,
+    temperature: float = None,
+    is_holiday=None,
+) -> PeakResult:
     """Looks up threshold for (season, hour). Falls back to global threshold
     if that specific bucket is missing (e.g. sparse data for some combo).
     """
+    from src.explainability import build_context_explanation
+
     key = (season, hour)
     threshold = thresholds.get(key, thresholds.get(("__global__", None)))
 
@@ -47,10 +56,15 @@ def detect_peak(forecast: float, season: str, hour: int, thresholds: dict) -> Pe
 
     score = peak_severity(forecast, threshold)
     label = severity_label(score)
-    reasoning = (
-        f"Forecasted demand ({forecast:.0f}) exceeds the seasonal "
-        f"95th-percentile threshold ({threshold:.0f}) — {label} severity peak event."
+    excess = forecast - threshold
+    percent_excess = (excess / threshold * 100.0) if threshold > 0 else 0.0
+    base_reasoning = (
+        f"Forecast demand {forecast:,.0f} MW exceeds the seasonal peak threshold {threshold:,.0f} MW "
+        f"by {excess:,.0f} MW (+{percent_excess:.1f}%). Peak risk classified as {label.upper()}."
     )
+    context_str = build_context_explanation(temperature=temperature, is_holiday=is_holiday)
+    reasoning = base_reasoning + context_str
+
     return PeakResult(is_peak=True, threshold=threshold, severity=label,
                        severity_score=score, reasoning=reasoning)
 

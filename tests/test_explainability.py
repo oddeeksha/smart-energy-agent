@@ -12,7 +12,7 @@ def test_explain_peak_returns_expected_message():
     assert isinstance(result, str)
     assert "500" in result
     assert "450" in result
-    assert "High severity peak event" in result
+    assert "HIGH" in result
 
 
 def test_explain_anomaly_returns_expected_message():

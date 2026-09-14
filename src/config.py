@@ -1,5 +1,5 @@
 """
-Configuration settings for Smart Energy Optimization PJME Forecasting Pipeline.
+Configuration settings for GridPulse PJME Forecasting Pipeline.
 Defines column schemas, feature lists, data paths, split settings, and shared P2-P8 starter constants.
 """
 
